@@ -1,7 +1,5 @@
 FROM tiangolo/uvicorn-gunicorn-fastapi:python3.11-slim
 
-RUN apt update && apt upgrade -y && apt install netcat-openbsd -y
-
 WORKDIR /app
 
 COPY requirements.txt .
