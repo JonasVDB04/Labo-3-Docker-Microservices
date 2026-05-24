@@ -1,6 +1,24 @@
 services:
+  postgres:
+    image: postgres:17.0-alpine
+    environment:
+      - POSTGRES_USER=student_user
+      - POSTGRES_PASSWORD=student_password
+      - POSTGRES_DB=labo
+    volumes:
+      - postgres:/var/lib/postgresql/data/
+    networks:
+      - data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U student_user -d labo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   api:
     build: ./api
+    image: jonasvdb04/api
     ports:
       - 8080:8080
     environment:
@@ -10,41 +28,42 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_HOST=postgres
       - PORT=8080
+    networks:
+      - web
+      - data
     depends_on:
       postgres:
         condition: service_healthy
 
   frontend:
     build: ./web_new
+    image: jonasvdb04/my-frontend
     expose:
       - 5000
     environment:
-      - VARIABLE=VALUE
-    depends_on:
-      - api
+      - API_URL=http://api:8080
+    volumes:
+      - static_files:/app/webapp/static
+    networks:
+      - web
 
   nginx:
     build: ./nginx
+    image: jonasvdb04/nginx
     ports:
       - 80:80
-    depends_on:
-      - api
-      - frontend
-
-  postgres:
-    image: postgres:17.0-alpine
-    environment:
-      - POSTGRES_USER=student_user
-      - POSTGRES_PASSWORD=student_password
-      - POSTGRES_DB=labo
     volumes:
-      - postgres:/var/lib/postgresql/data/
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U student_user -d labo"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      - static_files:/app/static:ro
+    networks:
+      - web
+    depends_on:
+      - frontend
+      - api
+
+networks:
+  web:
+  data:
 
 volumes:
   postgres:
+  static_files:
